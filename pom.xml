@@ -21,13 +21,11 @@
             <version>3.8.1</version>
             <scope>test</scope>
         </dependency>
-        <!-- Apache Beam SDK for Java -->
         <dependency>
             <groupId>org.apache.beam</groupId>
             <artifactId>beam-sdks-java-core</artifactId>
             <version>2.50.0</version>
         </dependency>
-        <!-- For using Dataflow Runner -->
         <dependency>
             <groupId>org.apache.beam</groupId>
             <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
@@ -38,6 +36,11 @@
             <groupId>org.apache.beam</groupId>
             <artifactId>beam-runners-direct-java</artifactId>
             <version>2.50.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.28</version>
         </dependency>
 
     </dependencies>

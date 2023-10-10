@@ -12,8 +12,8 @@ resource "google_compute_instance" "default" {
   tags = ["dev"]
 
   scheduling {
-    automatic_restart = false
-    preemptible = true
+    automatic_restart  = false
+    preemptible        = true
     provisioning_model = "SPOT"
   }
 
@@ -29,5 +29,6 @@ resource "google_compute_instance" "default" {
     access_config {
       // Ephemeral IP
     }
+
   }
 }

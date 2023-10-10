@@ -18,145 +18,80 @@
 
 package com.ityulkanov;
 
+import com.google.gson.Gson;
+import com.ityulkanov.model.Sale;
 import org.apache.beam.runners.dataflow.DataflowRunner;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.transforms.Count;
-import org.apache.beam.sdk.transforms.Filter;
-import org.apache.beam.sdk.transforms.FlatMapElements;
-import org.apache.beam.sdk.transforms.MapElements;
-import org.apache.beam.sdk.values.KV;
-import org.apache.beam.sdk.values.TypeDescriptors;
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.ParDo;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
-/**
- * An example that counts words in Shakespeare.
- *
- *
- * <p>Concepts:
- *
- * <pre>
- *   1. Reading data from text files
- *   2. Specifying 'inline' transforms
- *   3. Counting items in a PCollection
- *   4. Writing data to text files
- * </pre>
- *
- * <p>No arguments are required to run this pipeline. It will be executed with the DirectRunner. You
- * can see the results in the output files in your current working directory, with names like
- * "wordcounts-00001-of-00005. When running on a distributed service, you would use an appropriate
- * file service.
- */
+
 public class App {
+    static class processJson extends DoFn<String, String> {
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            String jsonStr = c.element();
+            assert jsonStr != null;
+            Gson gson = new Gson();
+            Sale sale = gson.fromJson(jsonStr, Sale.class);
+            sale.setProductName(sale.getProductName().toUpperCase());
+            sale.setTransactionID(String.format("%s_%s_%s", sale.getStoreID(), sale.getProductID(), sale.getSalesDate()));
+            sale.setUpdatedPrice(sale.getPrice() - sale.getDiscount());
+            c.output(gson.toJson(sale));
+        }
+    }
+
+    public static class TrimJsonFn extends DoFn<String, String> {
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            String rawJson = c.element();
+            assert rawJson != null;
+            String trimmedJson = rawJson.trim();
+            c.output(trimmedJson);
+        }
+    }
 
     public static void main(String[] args) {
-
-        // [START create_pipeline_options]
-        // Create a PipelineOptions object. This object lets us set various execution
-        // options for our pipeline, such as the runner you wish to use. This example
-        // will run with the DirectRunner by default, based on the class path configured
-        // in its dependencies.
-        // PipelineOptions options = PipelineOptionsFactory.create();
-        // [END create_pipeline_options]
-
-        // In order to run your pipeline, you need to make following runner specific changes:
-        //
-        // CHANGE 1/3: Select a Be amrunner, such as BlockingDataflowRunner
-        // or FlinkRunner.
-        // CHANGE 2/3: Specify runner-required options.
-        // For BlockingDataflowRunner, set project and temp location as follows:
-        //   DataflowPipelineOptions dataflowOptions = options.as(DataflowPipelineOptions.class);
-        //   dataflowOptions.setRunner(BlockingDataflowRunner.class);
-        //   dataflowOptions.setProject("SET_YOUR_PROJECT_ID_HERE");
-        //   dataflowOptions.setTempLocation("gs://SET_YOUR_BUCKET_NAME_HERE/AND_TEMP_DIRECTORY");
-        // For FlinkRunner, set the runner as follows. See {@code FlinkPipelineOptions}
-        // for more details.
-        //   options.as(FlinkPipelineOptions.class)
-        //      .setRunner(FlinkRunner.class);
-
-        // [START create_pipeline]
-        // Create the Pipeline object with the options we defined above
         DataflowPipelineOptions options = PipelineOptionsFactory.as(DataflowPipelineOptions.class);
         options.setRunner(DataflowRunner.class);
         options.setProject("transformjson-401609");
         options.setRegion("us-east1");
         options.setWorkerRegion("us-east1");
-        // options.setWorkerMachineType("n1-standard-1");
         options.setStagingLocation("gs://sales_data_transform_json/staging/");
         options.setGcpTempLocation("gs://sales_data_transform_json/temp/");
+        // parse avro schema from .avsc file
+        String avroSchemaStr = null;
+        try {
+            avroSchemaStr = Arrays.toString(Files.readAllBytes(Paths.get("avro/sale.avsc")));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
 
         Pipeline p = Pipeline.create(options);
-        // [END create_pipeline]
+        p.apply("ReadJSON", TextIO.read().from("gs://sales_data_transform_json/sales_file.json"))
+                .apply("ClearJson", ParDo.of(new TrimJsonFn()))
+                .apply("Process json", ParDo.of(new processJson()))
+                // convert to avro:
+                //.apply(ParDo.of(new JsonToAvroDoFn(avroSchemaStr)))
+                .apply("WriteToSink", TextIO.write().to("gs://sales_data_transform_json/sales_file1.json"));
 
-        // Concept #1: Apply a root transform to the pipeline; in this case, TextIO.Read to read a set
-        // of input text files. TextIO.Read returns a PCollection where each element is one line from
-        // the input text (a set of Shakespeare's texts).
-
-        // This example reads from a public dataset containing the text of King Lear.
-        // [START read_input]
-        p.apply(TextIO.read().from("gs://apache-beam-samples/shakespeare/kinglear.txt"))
-                // [END read_input]
-
-                // Concept #2: Apply a FlatMapElements transform the PCollection of text lines.
-                // This transform splits the lines in PCollection<String>, where each element is an
-                // individual word in Shakespeare's collected texts.
-                // [START extract_words]
-                .apply(
-                        FlatMapElements.into(TypeDescriptors.strings())
-                                .via((String line) -> {
-                                    assert line != null;
-                                    return Arrays.asList(line.split("[^\\p{L}]+"));
-                                }))
-                // [END extract_words]
-
-                // We use a Filter transform to avoid empty word
-                // [START remove_empty_words]
-                .apply(Filter.by((String word) -> {
-                    assert word != null;
-                    return !word.isEmpty();
-                }))
-                // [END remove_empty_words]
-
-                // Concept #3: Apply the Count transform to our PCollection of individual words. The Count
-                // transform returns a new PCollection of key/value pairs, where each key represents a
-                // unique word in the text. The associated value is the occurrence count for that word.
-                // [START count_words]
-                .apply(Count.perElement())
-                // [END count_words]
-
-                // Apply a MapElements transform that formats our PCollection of word counts into a
-                // printable string, suitable for writing to an output file.
-                // [START format_output]
-                .apply(
-                        MapElements.into(TypeDescriptors.strings())
-                                .via(
-                                        (KV<String, Long> wordCount) ->
-                                        {
-                                            assert wordCount != null;
-                                            return wordCount.getKey() + ": " + wordCount.getValue();
-                                        }))
-                // [END format_output]
-
-                // Concept #4: Apply a write transform, TextIO.Write, at the end of the pipeline.
-                // TextIO.Write writes the contents of a PCollection (in this case, our PCollection of
-                // formatted strings) to a series of text files.
-                //
-                // By default, it will write to a set of files with names like wordcounts-00001-of-00005
-                // [START write_output]
-                .apply(TextIO.write().to("gs://sales_data_transform_json/wordounts.txt"));
-        // [END write_output]
-
-        // [START run_pipeline]
-        PipelineResult.State state = p.run().waitUntilFinish();
-        if (state == PipelineResult.State.DONE) {
-            System.out.println("Pipeline finished successfully.");
-        } else {
-            System.out.println("Pipeline did not finish successfully.");
+        // Execute the pipeline
+        PipelineResult result = p.run();
+        System.out.println("Pipeline result: " + result.getState());
+        PipelineResult.State state = result.waitUntilFinish();
+        if (state != PipelineResult.State.DONE) {
+            System.out.println("Pipeline failed: " + state);
         }
-        // [END run_pipeline]
+
     }
 }

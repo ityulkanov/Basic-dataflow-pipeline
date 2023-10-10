@@ -24,7 +24,15 @@
     },
     {
       "name": "discount",
-      "type": "long"
+      "type": "double"
+    },
+    {
+      "name": "updated_price",
+      "type": "double"
+    },
+    {
+      "name": "transaction_id",
+      "type": "string"
     }
   ]
 }

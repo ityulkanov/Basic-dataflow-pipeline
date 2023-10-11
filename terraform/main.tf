@@ -6,11 +6,11 @@ provider "google" {
 
 # could be skipped, but it seem to solved ZONE_RESOURCE_POOL_EXHAUSTED for me
 resource "google_compute_instance" "default" {
-  name         = "dataflow-worker"
-  machine_type = "n1-standard-1"
-  zone         = "us-east1-b"
-
-  tags = ["dev"]
+  name                = "dataflow-worker"
+  machine_type        = "n1-standard-1"
+  zone                = "us-east1-b"
+  deletion_protection = false
+  tags                = ["dev"]
 
   scheduling {
     automatic_restart  = false
@@ -34,18 +34,18 @@ resource "google_compute_instance" "default" {
   }
 }
 resource "google_storage_bucket" "storage_bucket" {
-  project = var.project_id
-  for_each      = toset(var.bucket_name_set)
-  name          = each.value
-
-  location      = var.region
-  force_destroy = true
-  storage_class = "STANDARD"
+  project                  = var.project_id
+  for_each                 = toset(var.bucket_name_set)
+  name                     = each.value
+  location                 = var.region
+  force_destroy            = true #uncomment to fully clean working folders
+  storage_class            = "STANDARD"
   public_access_prevention = "enforced"
 
 }
 
 resource "google_bigquery_dataset" "default" {
+  project                     = var.project_id
   dataset_id                  = "avro_dataset_9494959"
   friendly_name               = "avro_dataset"
   description                 = "dataset used to store avro files"
@@ -59,7 +59,7 @@ resource "google_bigquery_dataset" "default" {
 
 resource "google_bigquery_table" "default" {
   dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = "bar"
+  table_id   = "avro_data_table"
 
   time_partitioning {
     type = "DAY"
@@ -68,10 +68,6 @@ resource "google_bigquery_table" "default" {
   labels = {
     env = "default"
   }
+  deletion_protection = false
 
-}
-
-resource "google_bigquery_table" "sheet" {
-  dataset_id = google_bigquery_dataset.default.dataset_id
-  table_id   = "avro_sheet"
 }

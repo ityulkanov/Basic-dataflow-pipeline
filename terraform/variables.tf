@@ -25,3 +25,15 @@ variable "project_id" {
   type        = string
   default     = ""
 }
+
+variable "dataset_id" {
+    description = "The ID of the BigQuery dataset to create the table in."
+    type        = string
+    default     = "avro_dataset_9494959"
+}
+
+variable "table_id" {
+    description = "The ID of the BigQuery table to create."
+    type        = string
+    default     = "avro_data_table_9494959"
+}

@@ -1,0 +1,30 @@
+{
+  "type" : "record",
+  "name" : "Sale",
+  "namespace" : "org.example",
+  "fields" : [ {
+    "name" : "salesDate",
+    "type" : "string"
+  }, {
+    "name" : "storeID",
+    "type" : "string"
+  }, {
+    "name" : "productID",
+    "type" : "string"
+  }, {
+    "name" : "productName",
+    "type" : "string"
+  }, {
+    "name" : "price",
+    "type" : "double"
+  }, {
+    "name" : "discount",
+    "type" : "double"
+  }, {
+    "name" : "updatedPrice",
+    "type" : "double"
+  }, {
+    "name" : "transactionID",
+    "type" : "string"
+  } ]
+}

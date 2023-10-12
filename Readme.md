@@ -3,7 +3,7 @@
 #### To run it first set up environment variables: 
 
 ```bash
-export TF_VAR_credentials_path=... # path to credentials.json
+export TF_VAR_credentials_path=... # path to google_credentials.json file
 export TF_VAR_project_id=... # project id 
 ```
 
@@ -13,11 +13,15 @@ export TF_VAR_project_id=... # project id
 terraform init && terraform apply
 ```
 
-Add sample file and schema (if run from terraform folder): 
+Add sample file (if run from terraform folder): 
 ```bash
 gsutil cp ../sample/sales_file.json gs://sales_data_32345543/
-gsutil cp ../schema/sale.avsc gs://avro_data_23235343
 
+```
+
+if any changes within avro scheme is made, please rerun: 
+```makefile
+make generate-avro
 ```
 
 #### Then run the pipeline: 

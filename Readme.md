@@ -13,9 +13,10 @@ export TF_VAR_project_id=... # project id
 terraform init && terraform apply
 ```
 
-Add sample file (if run from terraform folder): 
+Add sample file and schema (if run from terraform folder): 
 ```bash
-░ gsutil cp ../sample/sales_file.json gs://sales_data_32345543/
+gsutil cp ../sample/sales_file.json gs://sales_data_32345543/
+gsutil cp ../schema/sale.avsc gs://avro_data_23235343
 
 ```
 

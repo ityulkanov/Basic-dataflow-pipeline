@@ -1,7 +1,7 @@
 {
   "type" : "record",
   "name" : "Sale",
-  "namespace" : "org.example",
+  "namespace" : "com.ityulkanov.avro",
   "fields" : [ {
     "name" : "salesDate",
     "type" : "string"
@@ -22,9 +22,9 @@
     "type" : "double"
   }, {
     "name" : "updatedPrice",
-    "type" : "double"
+    "type" : ["null","double"]
   }, {
     "name" : "transactionID",
-    "type" : "string"
+    "type" : ["null","string"]
   } ]
 }

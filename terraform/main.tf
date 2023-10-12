@@ -15,7 +15,7 @@ resource "google_storage_bucket" "storage_bucket" {
 
 }
 
-resource "google_bigquery_dataset" "default" {
+resource "google_bigquery_dataset" "dataset" {
   project                     = var.project_id
   dataset_id                  = var.dataset_id
   friendly_name               = "avro_dataset"
@@ -28,8 +28,8 @@ resource "google_bigquery_dataset" "default" {
   }
 }
 
-resource "google_bigquery_table" "default" {
-  dataset_id = google_bigquery_dataset.default.dataset_id
+resource "google_bigquery_table" "table" {
+  dataset_id = google_bigquery_dataset.dataset.dataset_id
   table_id   = var.table_id
 
   time_partitioning {
@@ -41,4 +41,11 @@ resource "google_bigquery_table" "default" {
   }
   deletion_protection = false
 
+}
+
+resource "google_pubsub_topic" "pubsub_topic" {
+  name = "avrofilecreated"
+  project = var.project_id
+
+  message_retention_duration = "86600s"
 }

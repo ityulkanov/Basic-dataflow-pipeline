@@ -2,15 +2,16 @@ package com.ityulkanov;
 
 import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableSchema;
-import com.ityulkanov.funcs.AvroToTableRow;
-import com.ityulkanov.funcs.ByteArrayToUser;
+import com.ityulkanov.avro.Sale;
+import com.ityulkanov.funcs.ByteArrayToSale;
 import com.ityulkanov.funcs.ConvertToAvro;
 import com.ityulkanov.funcs.ProcessJson;
 import com.ityulkanov.funcs.TrimJson;
-import com.ityulkanov.model.Sale;
+import com.ityulkanov.funcs.SaleToTableRow;
 import org.apache.avro.file.CodecFactory;
 import org.apache.beam.runners.dataflow.DataflowRunner;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
+import org.apache.beam.runners.direct.DirectRunner;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.coders.CoderRegistry;
@@ -19,7 +20,10 @@ import org.apache.beam.sdk.extensions.avro.io.AvroIO;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.Watch;
+import org.joda.time.Duration;
 
 import java.util.Arrays;
 
@@ -43,8 +47,7 @@ public class App {
                         "WriteAVROToBucket",
                         AvroIO.write(byte[].class)
                                 .to("gs://" + AVRO_FOLDER + "/")
-                                .withSuffix(".avro")
-                                .withCodec(CodecFactory.snappyCodec()));
+                                .withSuffix(".avro"));
         PipelineResult result = p.run();
         System.out.println("Pipeline result: " + result.getState());
         PipelineResult.State state = result.waitUntilFinish();
@@ -56,12 +59,14 @@ public class App {
         // trying to solve the missing coder issue here
         CoderRegistry coderRegistry = p2.getCoderRegistry();
         coderRegistry.registerCoderForClass(Sale.class, AvroCoder.of(Sale.class));
+        // didn't find the way to easily create a schema out of class (possible TODO)
         TableSchema bigQuerySchema = getBigQuerySchema();
-        p2.apply("ReadAVRO", AvroIO.read(byte[].class).from("gs://" + AVRO_FOLDER + "/*.avro"))
-                .apply("ConvertToInternalClas", ParDo.of(new ByteArrayToUser()))
-                .apply("InternalClassToTableRow", ParDo.of(new AvroToTableRow()))
+        p2.apply("ReadAVRO", AvroIO.read(byte[].class).from("gs://" + AVRO_FOLDER + "/*.avro").watchForNewFiles(Duration.standardMinutes(2), Watch.Growth.never()))
+                .apply("ConvertToInternalClass", ParDo.of(new ByteArrayToSale()))
+                .apply("ConvertToTableRow", ParDo.of(new SaleToTableRow()))
                 .apply("WriteToBigQuery", BigQueryIO.writeTableRows()
-                        .to(DATASET_NAME + ":" + TABLE_NAME)
+                        .to(PROJECT_ID + "." + DATASET_NAME + "." + TABLE_NAME)
+                        .withCustomGcsTempLocation(ValueProvider.StaticValueProvider.of("gs://" + AVRO_FOLDER + "/temp/"))
                         .withSchema(bigQuerySchema)
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
@@ -82,8 +87,7 @@ public class App {
         options.setWorkerRegion(REGION);
         options.setStagingLocation("gs://" + SALES_FOLDER + "/staging/");
         options.setGcpTempLocation("gs://" + SALES_FOLDER + "/temp/");
-        Pipeline p = Pipeline.create(options);
-        return p;
+        return Pipeline.create(options);
     }
 
     private static TableSchema getBigQuerySchema() {
@@ -96,7 +100,6 @@ public class App {
                 new TableFieldSchema().setName("discount").setType("FLOAT"),
                 new TableFieldSchema().setName("updated_price").setType("FLOAT"),
                 new TableFieldSchema().setName("transaction_id").setType("STRING")
-
         ));
     }
 }

@@ -1,10 +1,13 @@
 package com.ityulkanov.funcs;
 
 import com.google.api.services.bigquery.model.TableRow;
-import com.ityulkanov.model.Sale;
+import com.ityulkanov.avro.Sale;
 import org.apache.beam.sdk.transforms.DoFn;
 
-public class AvroToTableRow extends DoFn<Sale, TableRow> {
+/**
+ * Converting from internal class into table rows
+ */
+public class SaleToTableRow extends DoFn<Sale, TableRow> {
 
     @ProcessElement
     public void processElement(ProcessContext c) {

@@ -2,6 +2,9 @@ package com.ityulkanov.funcs;
 
 import org.apache.beam.sdk.transforms.DoFn;
 
+/**
+ * Cleaning json to remove the extra spaces
+ */
 public class TrimJson extends DoFn<String, String> {
     @ProcessElement
     public void processElement(ProcessContext c) {

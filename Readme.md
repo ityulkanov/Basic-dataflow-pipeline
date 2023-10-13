@@ -7,7 +7,7 @@ export TF_VAR_credentials_path=... # path to google_credentials.json file
 export TF_VAR_project_id=... # project id 
 ```
 
-#### Then run terraform commands: 
+#### Then run terraform commands within terraform folder: 
 
 ```bash
 terraform init && terraform apply
@@ -25,7 +25,7 @@ make generate-avro
 ```
 
 #### Then run the pipeline: 
-First start takes substantial amount of time (over 10 mins), since it needs to fill stage folder with required jar files.
+First start takes substantial amount of time (over 20 mins), since it needs to fill stage folder with required jar files.
 
 Make sure you have all the required api enabled): 
 

@@ -13,7 +13,7 @@ import org.apache.beam.sdk.transforms.DoFn;
 import java.lang.reflect.Type;
 
 /**
- * Converting from JSON to internal class and proceed with adding new fields
+ * Converting from JSON to internal class, add new fields
  */
 public class ProcessJson extends DoFn<String, Sale> {
     @ProcessElement

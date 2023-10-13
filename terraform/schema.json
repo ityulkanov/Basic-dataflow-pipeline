@@ -1,0 +1,57 @@
+[
+  {
+    "name": "product_name",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "The name of the product"
+  },
+  {
+    "name": "store_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "The ID of the store"
+  },
+  {
+    "name": "product_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "The ID of the product"
+  },
+  {
+    "name": "price",
+    "type": "FLOAT64",
+    "mode": "NULLABLE",
+    "description": "The price of the product"
+  },
+  {
+    "name": "discount",
+    "type": "FLOAT64",
+    "mode": "NULLABLE",
+    "description": "The discount on the product"
+  },
+  {
+    "name": "updated_price",
+    "type": "FLOAT64",
+    "mode": "NULLABLE",
+    "description": "The updated price after discount"
+  },
+  {
+    "name": "transaction_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "The ID of the transaction"
+  },
+  {
+    "name": "sales_date",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "The date of the sale"
+  },
+
+  {
+    "name": "timestamp",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "The processing timestamp"
+  }
+]

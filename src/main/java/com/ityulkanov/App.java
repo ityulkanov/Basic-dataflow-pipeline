@@ -3,8 +3,6 @@ package com.ityulkanov;
 import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.ityulkanov.avro.Sale;
-import com.ityulkanov.funcs.ByteArrayToSale;
-import com.ityulkanov.funcs.ConvertToAvro;
 import com.ityulkanov.funcs.ProcessJson;
 import com.ityulkanov.funcs.SaleToTableRow;
 import com.ityulkanov.funcs.TrimJson;
@@ -25,6 +23,11 @@ import org.joda.time.Duration;
 
 import java.util.Arrays;
 
+// TODO create a separate config file to replace static values
+// TODO add logging
+// TODO add tests
+// TODO do not start streaming pipeline if same one already started
+
 
 public class App {
     public static final String SALES_FOLDER = "sales_data_32345543";
@@ -36,31 +39,17 @@ public class App {
 
 
     public static void main(String[] args) {
-        Pipeline p = setupPipeline();
-        p.apply("ReadJSON", TextIO.read().from("gs://" + SALES_FOLDER + "/sales_file.json"))
-                .apply("ClearJSON", ParDo.of(new TrimJson()))
-                .apply("ProcessJSON", ParDo.of(new ProcessJson()))
-                .apply(ParDo.of(new ConvertToAvro()))
-                .apply(
-                        "WriteAVROToBucket",
-                        AvroIO.write(byte[].class)
-                                .to("gs://" + AVRO_FOLDER + "/")
-                                .withSuffix(".avro"));
-        PipelineResult result = p.run();
-        System.out.println("Pipeline result: " + result.getState());
-        PipelineResult.State state = result.waitUntilFinish();
-        if (state != PipelineResult.State.DONE) {
-            System.out.println("Pipeline failed: " + state);
-        }
 
-        Pipeline p2 = setupPipeline();
-        // trying to solve the missing coder issue here
-        CoderRegistry coderRegistry = p2.getCoderRegistry();
+        // running a pipeline to read any new file appearing in gs folder and storing it into BQ
+        Pipeline p = setupPipeline();
+        CoderRegistry coderRegistry = p.getCoderRegistry();
         coderRegistry.registerCoderForClass(Sale.class, AvroCoder.of(Sale.class));
-        // didn't find the way to easily create a schema out of class (possible TODO)
+        // creating schema for the bq table
         TableSchema bigQuerySchema = getBigQuerySchema();
-        p2.apply("ReadAVRO", AvroIO.read(byte[].class).from("gs://" + AVRO_FOLDER + "/*.avro").watchForNewFiles(Duration.standardMinutes(2), Watch.Growth.never()))
-                .apply("ConvertToInternalClass", ParDo.of(new ByteArrayToSale()))
+        p.apply("ReadAVRO", AvroIO.read(Sale.class)
+                        .from("gs://" + AVRO_FOLDER + "/*.avro")
+                        // watch.Grow is a way to tell the pipeline to wait for the file to be fully written
+                        .watchForNewFiles(Duration.standardMinutes(2), Watch.Growth.never()))
                 .apply("ConvertToTableRow", ParDo.of(new SaleToTableRow()))
                 .apply("WriteToBigQuery", BigQueryIO.writeTableRows()
                         .to(PROJECT_ID + "." + DATASET_NAME + "." + TABLE_NAME)
@@ -68,12 +57,23 @@ public class App {
                         .withSchema(bigQuerySchema)
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
-        // Execute the second pipeline
-        PipelineResult secondPipelineResult = p2.run();
-        System.out.println("Second pipeline result: " + secondPipelineResult.getState());
-        PipelineResult.State secondPipelineState = secondPipelineResult.waitUntilFinish();
-        if (secondPipelineState != PipelineResult.State.DONE) {
-            System.out.println("Second pipeline failed: " + secondPipelineState);
+        PipelineResult secondPipelineResult = p.run();
+        System.out.println("Big query pipeline started: " + secondPipelineResult.getState());
+        // storing a file into gs folder:
+        Pipeline p2 = setupPipeline();
+        p2.apply("ReadJSON", TextIO.read().from("gs://" + SALES_FOLDER + "/sales_file.json"))
+                .apply("ClearJSON", ParDo.of(new TrimJson()))
+                .apply("ProcessJSON", ParDo.of(new ProcessJson()))
+                .apply(
+                        "WriteAVROToBucket",
+                        AvroIO.write(Sale.class)
+                                .to("gs://" + AVRO_FOLDER + "/")
+                                .withSuffix(".avro"));
+        PipelineResult result = p2.run();
+        System.out.println("Json processing pipeline started: " + result.getState());
+        PipelineResult.State state = result.waitUntilFinish();
+        if (state != PipelineResult.State.DONE) {
+            System.out.println("Json processing pipeline failed: " + state);
         }
     }
 
@@ -97,7 +97,7 @@ public class App {
                 new TableFieldSchema().setName("price").setType("FLOAT"),
                 new TableFieldSchema().setName("discount").setType("FLOAT"),
                 new TableFieldSchema().setName("updated_price").setType("FLOAT"),
-                new TableFieldSchema().setName("transaction_id").setType("STRING")
-        ));
+                new TableFieldSchema().setName("timestamp").setType("TIMESTAMP"),
+                new TableFieldSchema().setName("transaction_id").setType("STRING")));
     }
 }

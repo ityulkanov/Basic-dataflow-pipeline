@@ -41,11 +41,5 @@ resource "google_bigquery_table" "table" {
   }
   deletion_protection = false
 
-}
-
-resource "google_pubsub_topic" "pubsub_topic" {
-  name = "avrofilecreated"
-  project = var.project_id
-
-  message_retention_duration = "86600s"
+  schema = file("schema.json")
 }

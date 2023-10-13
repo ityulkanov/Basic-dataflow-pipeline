@@ -25,7 +25,7 @@ make generate-avro
 ```
 
 #### Then run the pipeline: 
-First start takes substantial amount of time (over 20 mins), since it needs to fill stage folder with required jar files.
+First start takes substantial amount of time (from 5 to 10 minutes), since it needs to fill stage folder with required jar files.
 
 Make sure you have all the required api enabled): 
 

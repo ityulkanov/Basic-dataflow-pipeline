@@ -2,6 +2,7 @@ package com.ityulkanov.funcs;
 
 import com.google.api.services.bigquery.model.TableRow;
 import com.ityulkanov.avro.Sale;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.sdk.transforms.DoFn;
 
 import java.time.Instant;
@@ -9,6 +10,7 @@ import java.time.Instant;
 /**
  * Converting from internal class into table rows
  */
+@Slf4j
 public class SaleToTableRow extends DoFn<Sale, TableRow> {
 
     @ProcessElement
@@ -26,6 +28,7 @@ public class SaleToTableRow extends DoFn<Sale, TableRow> {
                 .set("transaction_id", sale != null ? sale.getTransactionID() : null)
                 .set("timestamp", timestampAsString)
                 .set("sales_date", sale != null ? sale.getSalesDate() : null);
+        log.debug("TableRow: {}", tableRow);
         c.output(tableRow);
     }
 }

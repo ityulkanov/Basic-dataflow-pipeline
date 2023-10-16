@@ -8,6 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.ityulkanov.avro.Sale;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.sdk.transforms.DoFn;
 
 import java.lang.reflect.Type;
@@ -15,6 +16,7 @@ import java.lang.reflect.Type;
 /**
  * Converting from JSON to internal class, add new fields
  */
+@Slf4j
 public class ProcessJson extends DoFn<String, Sale> {
     @ProcessElement
     public void processElement(ProcessContext c) {
@@ -49,7 +51,7 @@ public class ProcessJson extends DoFn<String, Sale> {
                 transactionID = String.format("%s_%s_%s", storeId, productID, salesDate).toLowerCase();
             }
 
-            return Sale.newBuilder()
+            Sale sale = Sale.newBuilder()
                     .setSalesDate(salesDate)
                     .setStoreID(storeId)
                     .setProductID(productID)
@@ -59,6 +61,8 @@ public class ProcessJson extends DoFn<String, Sale> {
                     .setTransactionID(transactionID)
                     .setUpdatedPrice(updatedPrice)
                     .build();
+            log.debug("Sale: {}", sale);
+            return sale;
         }
     }
 }

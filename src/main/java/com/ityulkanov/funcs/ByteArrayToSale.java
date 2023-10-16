@@ -1,6 +1,7 @@
 package com.ityulkanov.funcs;
 
 import com.ityulkanov.avro.Sale;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.SeekableByteArrayInput;
 import org.apache.avro.io.DatumReader;
@@ -12,6 +13,7 @@ import java.io.IOException;
 /**
  * Converting raw file into internal Class
  */
+@Slf4j
 public class ByteArrayToSale extends DoFn<byte[], Sale> {
     @ProcessElement
     public void processElement(ProcessContext c) throws IOException {
@@ -21,6 +23,7 @@ public class ByteArrayToSale extends DoFn<byte[], Sale> {
         try (DataFileReader<Sale> fileReader = new DataFileReader<>(new SeekableByteArrayInput(avroBytes), userDatumReader)) {
             for (Sale sale : fileReader) {
                 c.output(sale);
+                log.debug("Sale: {}", sale);
             }
         }
     }

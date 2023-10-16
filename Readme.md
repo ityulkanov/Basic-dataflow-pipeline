@@ -19,12 +19,20 @@ gsutil cp ../sample/sales_file.json gs://sales_data_32345543/
 
 ```
 
+And config file:
+```bash
+gsutil cp ../config/config.json gs://sales_data_32345543/
+```
+
+add commandline argument to properly parse config in a format: 
+`project_id:bucket_name:file_path`
+
 if any changes within avro scheme is made, please rerun: 
 ```makefile
 make generate-avro
 ```
 
-#### Then run the pipeline: 
+#### Then run the project: 
 First start takes substantial amount of time (from 5 to 10 minutes), since it needs to fill stage folder with required jar files.
 
 Make sure you have all the required api enabled): 

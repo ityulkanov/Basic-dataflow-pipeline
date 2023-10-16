@@ -4,6 +4,7 @@ import com.google.api.services.bigquery.model.TableFieldSchema;
 import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.ityulkanov.avro.Sale;
+import com.ityulkanov.config.Config;
 import com.ityulkanov.funcs.ProcessJson;
 import com.ityulkanov.funcs.SaleToTableRow;
 import com.ityulkanov.funcs.TrimJson;
@@ -25,39 +26,31 @@ import org.apache.beam.sdk.values.PCollection;
 import org.joda.time.Duration;
 
 import java.util.Arrays;
-
-// TODO create a separate config file to replace static values
-// TODO add tests
 // TODO do not start streaming pipeline if same one already started
+// TODO parse terraform variables from the same json file
 
 @Slf4j
 public class App {
-    public static final String SALES_FOLDER = "sales_data_32345543";
-    public static final String AVRO_FOLDER = "avro_data_23235343";
-    public static final String PROJECT_ID = "transformjson-401609";
-    public static final String REGION = "us-east1";
-    public static final String DATASET_NAME = "avro_dataset_9494959";
-    public static final String TABLE_NAME = "avro_data_table_9494959";
-
-
     public static void main(String[] args) {
+        Config config = Config.LoadConfig(args[0]);
+        log.info("config loaded");
         log.info("creating avro - bq pipeline");
         // running a pipeline to read any new file appearing in gs folder and storing it into BQ
-        Pipeline p = setupPipeline();
+        Pipeline p = setupPipeline(config);
         CoderRegistry coderRegistry = p.getCoderRegistry();
         coderRegistry.registerCoderForClass(Sale.class, AvroCoder.of(Sale.class));
         // creating schema for the bq table
         TableSchema bigQuerySchema = getBigQuerySchema();
         PCollection<Sale> readAVRO = p.apply("ReadAVRO", AvroIO.read(Sale.class)
-                .from("gs://" + AVRO_FOLDER + "/*.avro")
+                .from("gs://" + config.sink.folder + "/*.avro")
                 // watch.Grow is a way to tell the pipeline to wait for the file to be fully written
                 .watchForNewFiles(Duration.standardMinutes(2), Watch.Growth.never()));
         log.debug("avro file being added to a google storage");
         PCollection<TableRow> saleBQ = readAVRO.apply("saleToBQFormat", ParDo.of(new SaleToTableRow()));
         log.debug("avro file being converted to table row");
         saleBQ.apply("WriteToBigQuery", BigQueryIO.writeTableRows()
-                .to(PROJECT_ID + "." + DATASET_NAME + "." + TABLE_NAME)
-                .withCustomGcsTempLocation(ValueProvider.StaticValueProvider.of("gs://" + AVRO_FOLDER + "/temp/"))
+                .to(config.project.projectId + "." + config.sink.BQDataset + "." + config.sink.BQTable)
+                .withCustomGcsTempLocation(ValueProvider.StaticValueProvider.of("gs://" + config.sink.folder + "/temp/"))
                 .withSchema(bigQuerySchema)
                 .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND)
                 .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED));
@@ -66,15 +59,15 @@ public class App {
         log.info(String.format("avro - bq pipeline started: %s", secondPipelineResult.getState()));
         // storing a file into gs folder:
         log.info("Creating json processing pipeline");
-        Pipeline p2 = setupPipeline();
-        PCollection<String> json = p2.apply("ReadJSON", TextIO.read().from("gs://" + SALES_FOLDER + "/sales_file.json"));
+        Pipeline p2 = setupPipeline(config);
+        PCollection<String> json = p2.apply("ReadJSON", TextIO.read().from("gs://" + config.source.folder + "/sales_file.json"));
         log.debug("json file being read");
         PCollection<String> clearJSON = json.apply("ClearJSON", ParDo.of(new TrimJson()));
         log.debug("json file being trimmed");
         PCollection<Sale> sale = clearJSON.apply("ProcessJSON", ParDo.of(new ProcessJson()));
         log.debug("json file being converted to internal class");
         sale.apply("WriteAVROToBucket", AvroIO.write(Sale.class)
-                .to("gs://" + AVRO_FOLDER + "/")
+                .to("gs://" + config.sink.folder + "/")
                 .withSuffix(".avro"));
         log.debug("internal class being written to google storage folder");
         PipelineResult result = p2.run();
@@ -85,14 +78,14 @@ public class App {
         }
     }
 
-    private static Pipeline setupPipeline() {
+    private static Pipeline setupPipeline(Config config) {
         DataflowPipelineOptions options = PipelineOptionsFactory.as(DataflowPipelineOptions.class);
         options.setRunner(DataflowRunner.class);
-        options.setProject(PROJECT_ID);
-        options.setRegion(REGION);
-        options.setWorkerRegion(REGION);
-        options.setStagingLocation("gs://" + SALES_FOLDER + "/staging/");
-        options.setGcpTempLocation("gs://" + SALES_FOLDER + "/temp/");
+        options.setProject(config.project.projectId);
+        options.setRegion(config.project.projectRegion);
+        options.setWorkerRegion(config.project.projectRegion);
+        options.setStagingLocation("gs://" + config.source.folder + "/staging/");
+        options.setGcpTempLocation("gs://" + config.source.folder + "/temp/");
         return Pipeline.create(options);
     }
 

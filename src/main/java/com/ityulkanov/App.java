@@ -11,6 +11,7 @@ import com.ityulkanov.funcs.TrimJson;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.runners.dataflow.DataflowRunner;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
+import org.apache.beam.runners.dataflow.options.DataflowWorkerLoggingOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.coders.CoderRegistry;
@@ -31,6 +32,10 @@ import java.util.Arrays;
 
 @Slf4j
 public class App {
+
+    public static final String STRING = "STRING";
+    public static final String FLOAT = "FLOAT";
+
     public static void main(String[] args) {
         Config config = Config.LoadConfig(args[0]);
         log.info("config loaded");
@@ -80,6 +85,9 @@ public class App {
 
     private static Pipeline setupPipeline(Config config) {
         DataflowPipelineOptions options = PipelineOptionsFactory.as(DataflowPipelineOptions.class);
+        var workerLogLevelOverrides = new DataflowWorkerLoggingOptions.WorkerLogLevelOverrides();
+        workerLogLevelOverrides.addOverrideForPackage(Package.getPackage("com.ityulkanov"), DataflowWorkerLoggingOptions.Level.TRACE);
+        options.setWorkerLogLevelOverrides(workerLogLevelOverrides);
         options.setRunner(DataflowRunner.class);
         options.setProject(config.project.projectId);
         options.setRegion(config.project.projectRegion);
@@ -91,14 +99,14 @@ public class App {
 
     private static TableSchema getBigQuerySchema() {
         return new TableSchema().setFields(Arrays.asList(
-                new TableFieldSchema().setName("sales_date").setType("STRING"),
-                new TableFieldSchema().setName("store_id").setType("STRING"),
-                new TableFieldSchema().setName("product_id").setType("STRING"),
-                new TableFieldSchema().setName("product_name").setType("STRING"),
-                new TableFieldSchema().setName("price").setType("FLOAT"),
-                new TableFieldSchema().setName("discount").setType("FLOAT"),
-                new TableFieldSchema().setName("updated_price").setType("FLOAT"),
+                new TableFieldSchema().setName("sales_date").setType(STRING),
+                new TableFieldSchema().setName("store_id").setType(STRING),
+                new TableFieldSchema().setName("product_id").setType(STRING),
+                new TableFieldSchema().setName("product_name").setType(STRING),
+                new TableFieldSchema().setName("price").setType(FLOAT),
+                new TableFieldSchema().setName("discount").setType(FLOAT),
+                new TableFieldSchema().setName("updated_price").setType(FLOAT),
                 new TableFieldSchema().setName("timestamp").setType("TIMESTAMP"),
-                new TableFieldSchema().setName("transaction_id").setType("STRING")));
+                new TableFieldSchema().setName("transaction_id").setType(STRING)));
     }
 }

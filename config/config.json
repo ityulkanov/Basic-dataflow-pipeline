@@ -1,13 +1,13 @@
 {
   "project": {
-    "projectId": "transformjson-401609",
+    "projectId": "wickes-test-dev-env",
     "projectRegion": "us-east1"
   },
   "source": {
-    "folder": "sales_data_32345543"
+    "folder": "sales_data_32345546"
   },
   "sink": {
-    "folder": "avro_data_23235343",
+    "folder": "avro_data_23235346",
     "BQDataset": "avro_dataset_9494959",
     "BQTable": "avro_data_table_9494959"
   }

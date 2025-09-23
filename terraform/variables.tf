@@ -1,7 +1,7 @@
 variable "credentials_path" {
   description = "The path to the GCP service account JSON key."
   type        = string
-  default     = ""  # You can set a default or leave it empty to ensure it's provided.
+  default     = "~/Downloads/wickes-test-dev-env-b98e51a540eb.json"  # You can set a default or leave it empty to ensure it's provided.
 }
 
 variable "region" {
@@ -25,7 +25,7 @@ variable "image_name" {
 variable "project_id" {
   description = "The ID of the GCP project to create the image in."
   type        = string
-  default     = "transformjson-401609"
+  default     = "wickes-test-dev-env"
 }
 
 variable "dataset_id" {

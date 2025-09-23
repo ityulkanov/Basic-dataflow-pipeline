@@ -15,13 +15,13 @@ terraform init && terraform apply
 
 Add sample file (if run from terraform folder): 
 ```bash
-gsutil cp ../sample/sales_file.json gs://sales_data_32345543/
+gsutil cp ../sample/sales_file.json gs://sales_data_32345546/
 
 ```
 
 And config file:
 ```bash
-gsutil cp ../config/config.json gs://sales_data_32345543/
+gsutil cp ../config/config.json gs://sales_data_32345546/
 ```
 
 add commandline argument to properly parse config in a format: 

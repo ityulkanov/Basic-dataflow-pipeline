@@ -13,7 +13,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>1.7.30</slf4j.version>
-        <beam.version>2.67.0</beam.version>
+        <beam.version>2.68.0</beam.version>
     </properties>
 
     <dependencyManagement>

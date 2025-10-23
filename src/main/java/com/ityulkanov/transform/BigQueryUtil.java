@@ -10,6 +10,8 @@ import com.google.cloud.bigquery.TableId;
 import com.ityulkanov.cons.ContentInfo;
 import com.ityulkanov.util.ErrorTblDtl;
 import com.ityulkanov.util.ExceptionUtil;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.io.gcp.bigquery.InsertRetryPolicy;
 import org.apache.beam.sdk.io.gcp.bigquery.WriteResult;
@@ -19,6 +21,7 @@ import org.apache.beam.sdk.values.TupleTag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class BigQueryUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BigQueryUtil.class);
@@ -28,6 +31,7 @@ public class BigQueryUtil {
 
     public static FieldList getTblFields(String projectId, String dataSet, String tableName) {
         BigQuery bigquery = BigQueryOptions.getDefaultInstance().getService();
+        log.info("getting project {}, {} {}", projectId, dataSet, tableName);
         Table table = bigquery.getTable(TableId.of(projectId, dataSet, tableName));
         Schema schema = table.getDefinition().getSchema();
         if (schema != null) {
